@@ -1,5 +1,6 @@
 from pygame import *
 from random import random, randint
+from time import time as timer
 
 # вынесем размер окна в константы для удобства
 # W - width, ширина
@@ -12,7 +13,10 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0 )
 OHCKO = 15
 LOX = 5
-HP = 3
+HP = 5
+FIRES = 10
+FIRES_RECHARGE = 3
+ASTEROIDS = 3
 
 # создание окна размером 700 на 500
 window = display.set_mode((WIN_W, WIN_H))
@@ -33,8 +37,12 @@ class Player(GameSprite):
         super().__init__(img, x, y, width, height, speed)
         self.dead = 0
         self.lost = 0
-        self.bulls =sprite.Group() 
+        self.bulls =sprite.Group()
         self.hp = hp
+        self.bullscount = 0
+        self.is_recharge = False
+        self.last_time = timer()
+        self.kurrent_time = timer()
     def update(self):
         keys_pressed = key.get_pressed()
         if keys_pressed[K_a] and self.rect.x > 5:
@@ -43,17 +51,19 @@ class Player(GameSprite):
             self.rect.x += self.speed
     def fire(self):
         bull = Bullet('bullet.png', self.rect.x + (self.rect.width // 2), self.rect.y)
+        self.bullscount += 1
         self.bulls.add(bull)
 
 
 class Enemy(GameSprite):
     def __init__(self, img, x, y, width=65, height=35, speed=1):
         super().__init__(img, x, y, width, height, speed)
-    def update(self, rocket):
+    def update(self, rocket = None):
         if self.rect.y > WIN_H - self.rect.height:
             self.rect.x = randint(0,WIN_W - self.rect.width)
             self.rect.y = 0
-            rocket.lost += 1
+            if rocket:
+                rocket.lost += 1
         self.rect.y += self.speed
 
 class Bullet(GameSprite):
@@ -90,6 +100,7 @@ myfont2 = font.SysFont('Verdana', font_size // 2)
 
 scor_txt = myfont2.render('Cчет:', True, WHITE)
 lost_txt = myfont2.render('Пропущено:', True, WHITE)
+recharge = myfont2.render('Перезарядка', True, WHITE)
 
 scor = myfont2.render('0', True, WHITE)
 lost = myfont2.render('0', True, WHITE)
@@ -100,6 +111,11 @@ enemys = sprite.Group()
 for i in range(ENEMY):
     enemy = Enemy('ufo.png', randint(0,WIN_W-65), randint(0,100))
     enemys.add(enemy)
+
+asteroids = sprite.Group()
+for i in range(ASTEROIDS):
+    asteroid = Enemy('asteroid.png', randint(0,WIN_W-65), randint(0,100), 65, 65)
+    asteroids.add(asteroids)
 
 
 finish = False
@@ -118,7 +134,13 @@ while game:
         if e.type == KEYDOWN:
             # если нажата клавиша Q
             if e.key == K_SPACE:
-                rocket.fire()
+                if not rocket.is_recharge and rocket.bullscount < FIRES:
+                    rocket.fire()
+                if not rocket.is_recharge and rocket.bullscount >= FIRES:
+                    rocket.is_recharge = True
+                    rocket.last_time = timer()
+
+
     if not finish:
         window.blit(background,(0, 0))
         lost = myfont2.render(str(rocket.lost), True, WHITE) 
@@ -130,11 +152,25 @@ while game:
         rocket.update()
         enemys.draw(window)
         enemys.update(rocket)
+        asteroids.draw(window)
+        asteroids.update()
         rocket.bulls.draw(window)
         rocket.bulls.update()
 
+        if rocket.is_recharge:
+            rocket.kurrent_time = timer()
+            if rocket.kurrent_time - rocket.last_time < FIRES_RECHARGE:
+                window.blit(recharge,(200,450))
+            else:
+                rocket.bullscount = 0
+                rocket.is_recharge = False
+
         collide_enemys = sprite.spritecollide(
-            rocket, enemys,True
+            rocket, enemys, True
+        )
+
+        collide_asteroids = sprite.spritecollide(
+            rocket, asteroids, False
         )
         if collide_enemys:
             if rocket.hp > 0:
@@ -144,7 +180,7 @@ while game:
                 display.update()
                 finish = True
 
-        if rocket.lost > LOX:
+        if rocket.lost > LOX or collide_asteroids:
             window.blit(lose,(200, 200))
             display.update()
             finish = True
@@ -161,6 +197,29 @@ while game:
             window.blit(win,(200, 200))
             display.update()
             finish = True
+
+    else:
+        finish = False
+        rocket.dead = 0
+        rocket.lost = 0
+        rocket.bullscount = 0
+        rocket.is_recharge = False
+        #enemys.kill()
+        #asteroids.kill()
+        #rocket.bulls.kill()
+
+        time.delay(3)
+
+        # enemys = sprite.Group()
+        # for i in range(ENEMY):
+        #     enemy = Enemy('ufo.png', randint(0,WIN_W-65), randint(0,100))
+        #     enemys.add(enemy)
+
+        # asteroids = sprite.Group()
+        # for i in range(ASTEROIDS):
+        #     asteroid = Enemy('asteroid.png', randint(0,WIN_W-65), randint(0,100), 65, 65)
+        #     asteroids.add(asteroids)
+        # time.delay(50)
 
     display.update()     
     clock.tick(FPS)
