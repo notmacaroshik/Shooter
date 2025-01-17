@@ -115,8 +115,9 @@ for i in range(ENEMY):
 asteroids = sprite.Group()
 for i in range(ASTEROIDS):
     asteroid = Enemy('asteroid.png', randint(0,WIN_W-65), randint(0,100), 65, 65)
-    asteroids.add(asteroids)
+    asteroids.add(asteroid)
 
+print(asteroids)
 
 finish = False
 # игровой цикл
@@ -204,22 +205,27 @@ while game:
         rocket.lost = 0
         rocket.bullscount = 0
         rocket.is_recharge = False
-        #enemys.kill()
-        #asteroids.kill()
-        #rocket.bulls.kill()
 
-        time.delay(3)
+        for e in enemys:
+            e.kill()
+        
+        for a in asteroids:
+            a.kill()
+        for b in rocket.bulls:
+            b.kill()
 
-        # enemys = sprite.Group()
-        # for i in range(ENEMY):
-        #     enemy = Enemy('ufo.png', randint(0,WIN_W-65), randint(0,100))
-        #     enemys.add(enemy)
+        time.delay(1000)
 
-        # asteroids = sprite.Group()
-        # for i in range(ASTEROIDS):
-        #     asteroid = Enemy('asteroid.png', randint(0,WIN_W-65), randint(0,100), 65, 65)
-        #     asteroids.add(asteroids)
-        # time.delay(50)
+        enemys = sprite.Group()
+        for i in range(ENEMY):
+            enemy = Enemy('ufo.png', randint(0,WIN_W-65), randint(0,100))
+            enemys.add(enemy)
+
+        asteroids = sprite.Group()
+        for i in range(ASTEROIDS):
+            asteroid = Enemy('asteroid.png', randint(0,WIN_W-65), randint(0,100), 65, 65)
+            asteroids.add(asteroid)
+        time.delay(50)
 
     display.update()     
     clock.tick(FPS)
